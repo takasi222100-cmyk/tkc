@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>テスト記事：Dify × JinaAI スクレイピング用ページ</title>
+  <!--
+    このページは、DifyのWorkflowで「HTTPリクエスト」→ JinaAI Reader (r.jina.ai) 経由の取得テストをしやすいように
+    ・記事本文（抽出対象）
+    ・サイドバーや広告（ノイズ）
+    ・表、リスト、コードブロック、引⽤、画像
+    ・JSON-LD（構造化データ）
+    ・動的に挿入されるテキスト（JS実行が必要な要素）
+    を 1 つのHTMLに詰め込んだ「練習台」です。
+
+    ▼想定の使い方（例）
+    1) このHTMLを任意のホスティング（例: GitHub Pages / Netlify / Vercel / 自前サーバ）にアップ。
+    2) r.jina.ai 経由で本文抽出: https://r.jina.ai/https://あなたのドメイン/パス/このファイル.html
+       ※ localhost は外部から到達できないので、ngrokなどで公開URLを作るか、外部ホスティングを使ってください。
+    3) DifyのWorkflowで「HTTPリクエスト」ノードを使い、上記 r.jina.ai のURLをGET → LLMに渡して要約・構造化などに利用。
+
+    初心者でもわかりやすいように、要素に丁寧なコメントを入れています。
+  -->
+  <meta name="description" content="DifyとJinaAI Reader向けのスクレイピング練習用テストページ。本文・ノイズ・表・コード・画像・構造化データなどを収録。" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://example.com/dify-jinaai-scrape-test.html" />
+
+  <!-- Open Graph (SNS共有時の見栄え向上) -->
+  <meta property="og:title" content="テスト記事：Dify × JinaAI スクレイピング用ページ" />
+  <meta property="og:type" content="article" />
+  <meta property="og:description" content="本文抽出や要約の練習用に作られたダミー記事ページ。余計な要素も混ぜてあります。" />
+  <meta property="og:image" content="https://via.placeholder.com/1200x630.png?text=Dify%20x%20JinaAI%20Test" />
+
+  <!-- 構造化データ（検索エンジン向け）。スクレイピング時のメタ補助にも。 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "テスト記事：Dify × JinaAI スクレイピング用ページ",
+    "datePublished": "2025-08-13T09:00:00+09:00",
+    "dateModified": "2025-08-13T09:00:00+09:00",
+    "author": {
+      "@type": "Person",
+      "name": "山田 太郎"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Example Labs",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://via.placeholder.com/200.png?text=Logo"
+      }
+    },
+    "keywords": ["Dify", "JinaAI", "スクレイピング", "テスト"],
+    "articleSection": "Tech"
+  }
+  </script>
+
+  <style>
+    /* 最低限の見た目調整。重要ではありません。 */
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans JP, sans-serif; line-height: 1.7; color: #222; margin: 0; }
+    header, footer { background: #0f172a; color: #fff; padding: 16px; }
+    main { display: grid; grid-template-columns: 1fr 300px; gap: 24px; max-width: 1100px; margin: 0 auto; padding: 24px; }
+    nav a { color: #e2e8f0; margin-right: 12px; text-decoration: none; }
+    article { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+    aside { background: #fafafa; padding: 16px; border-radius: 12px; border: 1px solid #eee; }
+    h1 { font-size: 1.8rem; margin: 0 0 8px; }
+    .meta { color: #6b7280; font-size: .9rem; margin-bottom: 16px; }
+    .badge { display: inline-block; font-size: .75rem; background: #eef2ff; color: #3730a3; padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+    figure { margin: 16px 0; }
+    figcaption { font-size: .9rem; color: #6b7280; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+    pre { background: #0b1022; color: #e5e7eb; padding: 12px; border-radius: 8px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #3b82f6; margin: 16px 0; padding: 8px 12px; background: #f0f9ff; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 1px, 1px); border: 0; }
+    .ad, .noise { color: #6b7280; font-size: 0.9rem; }
+    .noise { background: #fef3c7; padding: 8px; border-radius: 8px; }
+    .hidden { display: none; }
+    .taglist a { display: inline-block; font-size: .8rem; background: #eef2ff; color: #3730a3; padding: 2px 8px; border-radius: 999px; margin: 0 6px 6px 0; text-decoration: none; }
+    footer { font-size: .9rem; }
+    .pagination a { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <nav aria-label="サイトナビゲーション">
+      <!-- サイト共通ナビ（本文抽出では無視してほしい例） -->
+      <a href="#">ホーム</a>
+      <a href="#">ニュース</a>
+      <a href="#">レビュー</a>
+      <a href="#">お問い合わせ</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 本文領域（抽出対象）。article や h1/h2 を持たせ、Readability系が拾いやすい構造にしています。 -->
+    <article id="main-article">
+      <header>
+        <h1>テスト記事：Dify × JinaAI でスクレイピングを試すためのダミーページ</h1>
+        <p class="meta">公開日: <time datetime="2025-08-13">2025-08-13</time> / 著者: <span itemprop="author">山田太郎</span> / カテゴリ: <span class="badge">Tech</span><span class="badge">AI</span></p>
+      </header>
+
+      <!-- 記事のリード文（要約に使われやすい） -->
+      <p><strong>このページは、スクレイピング練習用のテスト記事です。</strong> Dify の Workflow と JinaAI Reader (r.jina.ai) を使って、本文の抽出・要約・構造化の一連を安全に試せます。本文に見せかけたノイズも混じっているので、抽出精度の確認に便利です。</p>
+
+      <figure>
+        <!-- 適当なプレースホルダー画像。altを入れておくと抽出時にテキスト化されるケースもあります。 -->
+        <img src="https://via.placeholder.com/800x400.png?text=Test+Image" alt="テスト用画像（ダッシュボードのイメージ）" loading="lazy" />
+        <figcaption>図1: テスト用のダッシュボードイメージ</figcaption>
+      </figure>
+
+      <h2>1. 何をテストできる？</h2>
+      <ul>
+        <li>本文とサイドバー・広告の切り分け（Precision/Recallの目視確認）</li>
+        <li>表やコードブロックの扱い（整形・読みやすさ）</li>
+        <li>多言語混在（Japanese + English）</li>
+        <li>動的挿入テキスト（JavaScript実行が必要な要素）の有無</li>
+      </ul>
+
+      <h2>2. サンプル表（価格・在庫）</h2>
+      <p>下の表は、価格や在庫のような構造化データの抽出テスト用です。セルの読み順や見出しの扱いを確認できます。</p>
+      <table aria-label="価格表">
+        <thead>
+          <tr>
+            <th>プラン</th>
+            <th>月額</th>
+            <th>在庫</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Basic</td>
+            <td>¥980</td>
+            <td>◯</td>
+          </tr>
+          <tr>
+            <td>Pro</td>
+            <td>¥2,480</td>
+            <td>△</td>
+          </tr>
+          <tr>
+            <td>Enterprise</td>
+            <td>お問い合わせ</td>
+            <td>要相談</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. コードブロック（JSONの例）</h2>
+      <p>APIレスポンスの整形などの評価用に、コードブロックを含めます。</p>
+      <pre><code>{
+  "title": "Dify × JinaAI scrape test",
+  "tags": ["dify", "jina", "scraping"],
+  "published": "2025-08-13",
+  "sections": 4
+}</code></pre>
+
+      <h2>4. 引用（blockquote）の例</h2>
+      <blockquote>
+        抽出器は、本文らしい連続テキストを優先します。レイアウト上の共通パーツや短い断片はスキップされやすい傾向にあります。
+      </blockquote>
+
+      <h2>5. 多言語の混在</h2>
+      <p>本記事は日本語中心ですが、時折英語も混ざります。This helps you verify how the model handles bilingual content within the same section.</p>
+
+      <h2>6. 参考リンク（相対/絶対）</h2>
+      <ul>
+        <li><a href="#footer">このページ内のフッター（相対リンク）</a></li>
+        <li><a href="https://example.com/another-test" rel="nofollow">別ページ（絶対リンク・nofollow）</a></li>
+      </ul>
+
+      <!-- スクレイピング時には落としてほしい「ノイズ」要素の例 -->
+      <div class="noise" aria-hidden="true">
+        <strong>[ノイズ] 人気記事</strong>
+        <ul>
+          <li>バズったけど本文と無関係なまとめリンクA</li>
+          <li>本文と無関係なまとめリンクB</li>
+        </ul>
+      </div>
+
+      <!-- JSが動かないと現れない内容の例（r.jina.aiなどは基本的にJS未実行） -->
+      <section id="js-only" class="hidden">
+        <h2>7. JavaScriptで追加されたセクション</h2>
+        <p>この段落はJavaScriptが実行されたときにだけ表示されます。サーバー側にHTMLがない場合、非JSレンダリングの抽出器では見えません。</p>
+      </section>
+
+      <p class="taglist" aria-label="タグ一覧">
+        <a href="#">#Dify</a>
+        <a href="#">#JinaAI</a>
+        <a href="#">#Scraping</a>
+        <a href="#">#Test</a>
+      </p>
+
+      <nav class="pagination" aria-label="ページネーション">
+        <!-- ページ送りの例。クロールで辿るかの評価にも。 -->
+        <a href="#" rel="prev">« 前の記事</a>
+        <a href="#" rel="next">次の記事 »</a>
+      </nav>
+    </article>
+
+    <!-- サイドバー（ノイズ） -->
+    <aside aria-label="サイドバー">
+      <div class="ad">
+        <strong>[広告エリア]</strong>
+        <p>ここは本文ではありません。広告やおすすめなど、抽出時には無視してほしい領域です。</p>
+      </div>
+      <hr />
+      <section>
+        <h3>著者プロフィール</h3>
+        <p>山田太郎。AIとデータの話題が好き。趣味は料理。</p>
+      </section>
+    </aside>
+  </main>
+
+  <footer id="footer">
+    <p>© 2025 Example Labs | <a href="#">プライバシーポリシー</a> | <a href="#">利用規約</a></p>
+  </footer>
+
+  <script>
+    // --- 初心者向け解説 ---
+    // 下のスクリプトは「JS実行が必要な領域（#js-only）をあとから表示する」ための簡単な例です。
+    // r.jina.ai のような「サーバーからHTMLを直接取得して抽出するタイプ」は、通常 JavaScript を実行しないため、
+    // JSで追加されたテキストは抽出に含まれないことが多いです。
+
+    // 1秒後に #js-only を表示してみる（動的コンテンツの擬似再現）
+    setTimeout(() => {
+      const jsOnly = document.getElementById('js-only');
+      if (jsOnly) {
+        jsOnly.classList.remove('hidden');
+      }
+    }, 1000);
+
+    // ついでに、画像の遅延読み込み風の処理例（本格的ではありません）
+    // 実運用ではIntersectionObserverなどを使うことが一般的です。
+  </script>
+</body>
+</html>
